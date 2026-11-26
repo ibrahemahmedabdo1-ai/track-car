@@ -22,3 +22,5 @@ The initial commit provides the Android app shell and CI build pipeline. Live ve
 - Never commit API keys, signing keys, database credentials, or production tokens.
 - Use HTTPS and short-lived authenticated sessions for future API calls.
 - Remote device actions must be permission-gated, auditable, and visible to the device user.
+
+CI trigger marker: initial Android Admin pipeline check.
