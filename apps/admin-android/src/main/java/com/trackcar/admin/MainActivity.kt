@@ -3,147 +3,110 @@ package com.trackcar.admin
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
-private val Navy = Color(0xFF101B31)
-private val Panel = Color(0xFF1B2942)
-private val Cyan = Color(0xFF36C5D8)
-private val Muted = Color(0xFF9AAAC2)
+private val Navy=Color(0xFF101B31)
+private val Panel=Color(0xFF1B2942)
+private val Cyan=Color(0xFF36C5D8)
+private val Muted=Color(0xFF9AAAC2)
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { TrackCarAdminApp() }
-    }
+data class FleetDevice(val label:String,val code:String,val model:String,val status:String,val lastSeen:String,val lat:Double?,val lng:Double?)
+
+class MainActivity:ComponentActivity(){
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent { AdminScreen() }}
 }
 
 @Composable
-private fun TrackCarAdminApp() {
-    MaterialTheme(colorScheme = darkColorScheme(
-        primary = Cyan,
-        background = Navy,
-        surface = Panel,
-        onBackground = Color.White,
-        onSurface = Color.White
-    )) {
-        Surface(modifier = Modifier.fillMaxSize(), color = Navy) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    Spacer(Modifier.height(22.dp))
-                    Text("TRACK CAR", color = Cyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("Fleet overview", fontSize = 29.sp, fontWeight = FontWeight.Bold)
-                    Text("Admin control center", color = Muted, fontSize = 14.sp)
-                }
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        MetricCard("Vehicles", "0", "Registered", Modifier.weight(1f))
-                        MetricCard("Online", "0", "Connected now", Modifier.weight(1f))
-                    }
-                }
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        MetricCard("Alerts", "0", "Needs review", Modifier.weight(1f))
-                        MetricCard("Trips today", "0", "Recorded", Modifier.weight(1f))
-                    }
-                }
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Panel),
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(Modifier.padding(18.dp)) {
-                            Text("Live fleet map", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "Map and live vehicle positions will appear after the secure fleet API is connected.",
-                                color = Muted,
-                                fontSize = 13.sp,
-                                lineHeight = 19.sp
-                            )
-                            Spacer(Modifier.height(18.dp))
-                            BoxPlaceholder()
-                        }
-                    }
-                }
-                item {
-                    Text("Management", fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    ManagementRow("Vehicles & devices", "Enroll vehicles and manage device status")
-                    ManagementRow("Trips & history", "Review routes and trip records")
-                    ManagementRow("Users & permissions", "Manage admins and fleet operators")
-                    ManagementRow("Alerts & audit log", "Review incidents and administrative actions")
-                    Spacer(Modifier.height(24.dp))
-                }
-            }
-        }
+private fun AdminScreen(){
+ var key by remember{mutableStateOf("")}
+ var status by remember{mutableStateOf("Enter the administrator API key to connect to the fleet.")}
+ var code by remember{mutableStateOf("")}
+ var devices by remember{mutableStateOf(emptyList<FleetDevice>())}
+ var busy by remember{mutableStateOf(false)}
+ fun request(path:String,method:String,adminKey:String,body:JSONObject?=null,done:(JSONObject?)->Unit){
+  Thread{
+   var result:JSONObject?=null
+   try{
+    val c=URL(Api.BASE+path).openConnection() as HttpURLConnection
+    c.requestMethod=method;c.connectTimeout=10000;c.readTimeout=15000
+    c.setRequestProperty("Accept","application/json");c.setRequestProperty("x-admin-key",adminKey)
+    if(body!=null){c.doOutput=true;c.setRequestProperty("Content-Type","application/json");c.outputStream.use{it.write(body.toString().toByteArray())}}
+    val stream=if(c.responseCode in 200..299)c.inputStream else c.errorStream
+    result=JSONObject(stream?.bufferedReader()?.use{it.readText()}?: "{}")
+    c.disconnect()
+   }catch(e:Exception){result=JSONObject().put("error",e.message?:"Network error")}
+   runOnUiThread{done(result)}
+  }.start()
+ }
+ fun load(){
+  if(key.isBlank()){status="Administrator key is required.";return}
+  busy=true;request("/api/admin/devices","GET",key){r->
+   busy=false
+   if(r==null||r.has("error"))status=r?.optString("error")?:"Connection failed"
+   else{
+    val arr=r.optJSONArray("devices");val list=mutableListOf<FleetDevice>()
+    if(arr!=null)for(i in 0 until arr.length()){val d=arr.getJSONObject(i);list.add(FleetDevice(d.optString("label"),d.optString("device_code"),d.optString("manufacturer")+" "+d.optString("model"),d.optString("status"),d.optString("last_seen_at"),if(d.isNull("last_lat"))null else d.optDouble("last_lat"),if(d.isNull("last_lng"))null else d.optDouble("last_lng")))}
+    devices=list;status="Connected. Loaded "+list.size+" devices."
+   }
+  }
+ }
+ fun createCode(){
+  if(key.isBlank()){status="Administrator key is required.";return}
+  busy=true;request("/api/admin/pairing","POST",key,JSONObject().put("expires_in_minutes",60).put("max_uses",1)){r->
+   busy=false
+   if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create code"
+   else{code=r.optString("pairing_code");status="Pairing code created. It can be used once and expires in one hour."}
+  }
+ }
+ MaterialTheme(colorScheme=darkColorScheme(primary=Cyan,background=Navy,surface=Panel,onBackground=Color.White,onSurface=Color.White)){
+  Surface(Modifier.fillMaxSize(),color=Navy){
+   LazyColumn(Modifier.fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+    item{
+     Text("TRACK CAR",color=Cyan,fontWeight=FontWeight.Bold)
+     Text("Fleet Admin",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.headlineMedium)
+     Text("Connected fleet control",color=Muted)
     }
+    item{
+     Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(16.dp)){
+      Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+       Text("Administrator access",fontWeight=FontWeight.SemiBold)
+       OutlinedTextField(value=key,onValueChange={key=it},label={Text("Admin API key")},singleLine=true,modifier=Modifier.fillMaxWidth())
+       Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+        Button(onClick={load},enabled=!busy){Text("Load fleet")}
+        Button(onClick={createCode},enabled=!busy){Text("New pairing code")}
+       }
+       if(code.isNotBlank()){Text("Pairing code",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={android.content.ClipData.newPlainText("Pairing code",code).let{clip->getClipboardManager()?.setPrimaryClip(clip)}},enabled=false){Text("Copy from dashboard")}}
+       Text(status,color=Muted)
+      }
+     }
+    }
+    item{Text("Devices ("+devices.size+")",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)}
+    items(devices){d->
+     Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){
+      Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+       Row(verticalAlignment=Alignment.CenterVertically){Text(d.label,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f));Text(d.status,color=Cyan)}
+       Text(d.model+" · "+d.code,color=Muted,style=MaterialTheme.typography.bodySmall)
+       Text("Last seen: "+(d.lastSeen.ifBlank{"Never"}),color=Muted,style=MaterialTheme.typography.bodySmall)
+       if(d.lat!=null&&d.lng!=null)Text("GPS: "+d.lat+", "+d.lng,color=Cyan,style=MaterialTheme.typography.bodySmall)
+      }
+     }
+    }
+   }
+  }
+ }
 }
 
-@Composable
-private fun MetricCard(title: String, value: String, hint: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, color = Muted, fontSize = 13.sp)
-            Text(value, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-            Text(hint, color = Muted, fontSize = 11.sp)
-        }
-    }
-}
-
-@Composable
-private fun BoxPlaceholder() {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier.fillMaxWidth().height(150.dp)
-            .background(Color(0xFF14243B), RoundedCornerShape(14.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("MAP NOT CONNECTED", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun ManagementRow(title: String, subtitle: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(15.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = Muted, fontSize = 12.sp)
-            }
-            Text("›", color = Cyan, fontSize = 26.sp)
-        }
-    }
-}
+private object Api{const val BASE="https://track-car-platform-git-main-otpprovider.vercel.app"}
