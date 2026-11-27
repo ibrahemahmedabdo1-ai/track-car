@@ -16,3 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "TrackCar"
 include(":apps:admin-android")
+include(":apps:installer-android")
+include(":apps:agent-android")
