@@ -20,7 +20,7 @@ Open Vercel → track-car-platform → Settings → Environment Variables. Add b
 
 Do not prefix either variable with `NEXT_PUBLIC_`. Never put them in GitHub or the Android app.
 
-After saving, redeploy the latest `main` deployment. Confirm:
+After saving, redeploy the latest `main` deployment. The Android Admin, Installer and Agent debug APKs have already been built successfully by GitHub Actions (run `45988869646`). Confirm:
 
 - `GET /api/health` returns `ok: true` and `database: connected`.
 - Open the fleet console, enter the administrator key and create a one-use pairing code.
