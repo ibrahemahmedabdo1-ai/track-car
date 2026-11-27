@@ -16,7 +16,7 @@ android {
     buildFeatures { compose = true }
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("TRACKCAR_KEYSTORE_PATH") ?: "release.keystore")
+            storeFile = rootProject.file(System.getenv("TRACKCAR_KEYSTORE_PATH") ?: "release.keystore")
             storePassword = System.getenv("TRACKCAR_KEYSTORE_PASSWORD") ?: ""
             keyAlias = System.getenv("TRACKCAR_KEY_ALIAS") ?: ""
             keyPassword = System.getenv("TRACKCAR_KEY_PASSWORD") ?: ""
