@@ -1,6 +1,7 @@
 package com.trackcar.admin
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -103,7 +104,7 @@ private fun AdminScreen(){
         Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
         Button(onClick={ createCode() },enabled=!busy){Text("Create install link")}
        }
-       if(code.isNotBlank()){Text("Installation link",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={revokeLink()},enabled=!busy){Text("Revoke")}}}
+       if(code.isNotBlank()){Text("Installation link",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,code)},"Send installation link"))}){Text("Share")};Button(onClick={revokeLink()},enabled=!busy){Text("Revoke")}}}
        Text(status,color=Muted)
       }
      }
