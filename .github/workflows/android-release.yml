@@ -1,0 +1,74 @@
+name: Track Car Signed Production APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-release:
+    name: Build signed Track Car release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify release signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TRACKCAR_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.TRACKCAR_RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.TRACKCAR_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.TRACKCAR_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || (echo "Missing TRACKCAR_RELEASE_KEYSTORE_BASE64" && exit 1)
+          test -n "$KEYSTORE_PASSWORD" || (echo "Missing TRACKCAR_RELEASE_KEYSTORE_PASSWORD" && exit 1)
+          test -n "$KEY_ALIAS" || (echo "Missing TRACKCAR_RELEASE_KEY_ALIAS" && exit 1)
+          test -n "$KEY_PASSWORD" || (echo "Missing TRACKCAR_RELEASE_KEY_PASSWORD" && exit 1)
+          mkdir -p signing
+          echo "$KEYSTORE_BASE64" | base64 --decode > signing/trackcar-release.jks
+          test -s signing/trackcar-release.jks
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build signed release APK
+        env:
+          TRACKCAR_KEYSTORE_PATH: signing/trackcar-release.jks
+          TRACKCAR_KEYSTORE_PASSWORD: ${{ secrets.TRACKCAR_RELEASE_KEYSTORE_PASSWORD }}
+          TRACKCAR_KEY_ALIAS: ${{ secrets.TRACKCAR_RELEASE_KEY_ALIAS }}
+          TRACKCAR_KEY_PASSWORD: ${{ secrets.TRACKCAR_RELEASE_KEY_PASSWORD }}
+        run: gradle --no-daemon :apps:trackcar-android:assembleRelease
+
+      - name: Prepare signed APK
+        run: |
+          mkdir -p release
+          APK="$(find apps/trackcar-android/build/outputs/apk/release -name '*.apk' -type f | head -n 1)"
+          test -n "$APK"
+          cp "$APK" release/TrackCar-release.apk
+          sha256sum release/TrackCar-release.apk > release/SHA256SUMS.txt
+
+      - name: Upload signed production APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: track-car-production-signed-apk
+          path: release/*
+          if-no-files-found: error
+          retention-days: 30
