@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AgentScreen(
+                initialPairingCode = intent?.getStringExtra("install_invite_token") ?: intent?.data?.lastPathSegment.orEmpty(),
                 onEnroll = { code, update ->
                     statusCallback = update
                     pendingPairingCode = code.trim()
@@ -118,11 +119,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AgentScreen(
+    initialPairingCode: String = "",
     onEnroll: (String, (String) -> Unit) -> Unit,
     onEnableAutoStart: () -> Unit,
     onStop: () -> Unit
 ) {
-    var code by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf(initialPairingCode) }
     var consent by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Not enrolled. Request a pairing code from your fleet administrator.") }
     MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(primary = Color(0xFF38C7D8), background = Color(0xFF0B1424))) {
