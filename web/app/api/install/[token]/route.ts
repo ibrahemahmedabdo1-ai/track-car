@@ -12,7 +12,8 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ token:
     );
     if (!result.rowCount) return json({ valid: false, error: "This installation link has expired, been revoked or already been used." }, 410);
     return json({ valid: true, label: result.rows[0].label, expires_at: result.rows[0].expires_at });
-  } catch {
+  } catch (error) {
+    console.error("trackcar_install_invite_validation_failed", error);
     return json({ valid: false, error: "Installation service is temporarily unavailable" }, 503);
   }
 }
