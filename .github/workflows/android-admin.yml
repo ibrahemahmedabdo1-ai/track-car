@@ -1,16 +1,21 @@
-name: Track Car Android APKs
+name: Track Car Unified Android APK
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - "apps/**"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/android-admin.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-android:
-    name: Build Admin, Installer and Agent
+  build-unified:
+    name: Build one unified Track Car APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,16 +44,37 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build all debug APKs
-        run: gradle --no-daemon assembleDebug
+      - name: Build unified debug APK
+        run: gradle --no-daemon :apps:trackcar-android:assembleDebug
 
-      - name: Upload all APKs
+      - name: Prepare APK
+        run: |
+          mkdir -p release
+          APK="$(find apps/trackcar-android/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)"
+          test -n "$APK"
+          cp "$APK" release/TrackCar.apk
+          sha256sum release/TrackCar.apk | tee release/SHA256SUMS.txt
+
+      - name: Upload unified APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: track-car-android-apks
-          path: |
-            apps/admin-android/build/outputs/apk/debug/*.apk
-            apps/installer-android/build/outputs/apk/debug/*.apk
-            apps/agent-android/build/outputs/apk/debug/*.apk
+          name: track-car-unified-apk
+          path: release/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
+
+      - name: Publish latest test APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: track-car-android-latest
+          name: Track Car Android - Latest Test Build
+          body: |
+            Automated DEBUG build for installation testing only.
+            Not a production-signed release. Android will ask the user to confirm installation.
+            Location tracking requires explicit in-app consent and Android permissions.
+          files: |
+            release/TrackCar.apk
+            release/SHA256SUMS.txt
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
