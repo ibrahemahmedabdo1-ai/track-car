@@ -42,10 +42,10 @@ The new Vercel project still needs two encrypted environment variables before th
 - `DATABASE_URL`: Neon connection string for `track-car-dev-bootstrap`, using role `trackcar_api`.
 - `TRACKCAR_ADMIN_KEY`: a strong random 32-byte administrator secret.
 
-The environment-variable values were not copied into project settings from this session because secret transfer was blocked by the platform security controls. Do not put either value in source code, a public GitHub file, or a browser variable. Add them in Vercel Project Settings → Environment Variables, then redeploy.
+The two server-only values have not yet been added to this new Vercel project. Add them directly in Vercel Project Settings → Environment Variables to keep credentials out of source control and the browser, then redeploy.
 
 ## Verification still outstanding
-- Confirm the Android CI run for the latest commit completes and uploads all three APKs.
+- Android CI passed for commit `ee2be9daabcf8952ed4a37afd4848c6eeb8d8bce`; the Admin, Installer and Agent debug APK artifact was uploaded.
 - Add the two Vercel secrets and verify `GET /api/health` returns database connected.
 - Perform a real pairing/enrollment/GPS sync using a physical Android head unit.
 - Validate automatic restart and background behavior per OEM. Android 12+ and vendor firmware can restrict this.
