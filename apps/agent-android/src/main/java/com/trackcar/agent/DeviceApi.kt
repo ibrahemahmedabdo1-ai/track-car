@@ -14,7 +14,7 @@ import java.util.TimeZone
 
 object DeviceApi {
     // Stable project URL is updated after the Vercel project is created.
-    const val BASE_URL = "https://track-car-platform.vercel.app"
+    const val BASE_URL = "https://track-car-platform-git-main-otpprovider.vercel.app"
 
     fun enroll(context: Context, pairingCode: String, callback: (Boolean, String) -> Unit) {
         Thread {
