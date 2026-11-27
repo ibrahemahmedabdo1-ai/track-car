@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
+            Build.VERSION.SDK_INT < 23
+        ) startTrackingService()
+    }
+
+    private val backgroundPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit()
+            .putBoolean("auto_start", granted)
+            .putBoolean("pending_auto_start", false)
+            .apply()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -40,7 +59,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         val prefs = getSharedPreferences("trackcar_agent", MODE_PRIVATE)
-        if (prefs.getBoolean("pending_auto_start", false)) {
+        if (prefs.getBoolean("pending_auto_start", false) && Build.VERSION.SDK_INT >= 30) {
             val granted = hasBackgroundLocationPermission()
             prefs.edit().putBoolean("pending_auto_start", false).putBoolean("auto_start", granted).apply()
         }
@@ -52,7 +71,7 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
         if (Build.VERSION.SDK_INT >= 33) permissions += Manifest.permission.POST_NOTIFICATIONS
-        if (Build.VERSION.SDK_INT >= 23) requestPermissions(permissions.toTypedArray(), 4101)
+        if (Build.VERSION.SDK_INT >= 23) locationPermissionLauncher.launch(permissions.toTypedArray())
         else startTrackingService()
     }
 
@@ -65,15 +84,13 @@ class MainActivity : ComponentActivity() {
             checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
             getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("pending_auto_start", true).apply()
-            val settingsIntent = Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:" + packageName)
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + packageName))
             )
-            startActivity(settingsIntent)
         } else if (Build.VERSION.SDK_INT == 29 &&
             checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), 4102)
+            backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         } else {
             getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
         }
@@ -82,17 +99,6 @@ class MainActivity : ComponentActivity() {
     private fun startTrackingService() {
         val intent = Intent(this, TrackingService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 4101) {
-            val fine = Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            val coarse = Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            if (fine || coarse) startTrackingService()
-        } else if (requestCode == 4102 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
-        }
     }
 }
 
