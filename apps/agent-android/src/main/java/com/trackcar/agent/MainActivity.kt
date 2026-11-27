@@ -3,8 +3,10 @@ package com.trackcar.agent
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (hasBackgroundLocationPermission()) {
+            getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
+        }
+    }
+
     private fun requestTrackingPermissions() {
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -42,11 +51,22 @@ class MainActivity : ComponentActivity() {
         else startTrackingService()
     }
 
+    private fun hasBackgroundLocationPermission(): Boolean =
+        Build.VERSION.SDK_INT < 29 ||
+            checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+
     private fun requestBackgroundPermission() {
-        if (Build.VERSION.SDK_INT >= 29 &&
+        if (Build.VERSION.SDK_INT >= 30 &&
             checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
-            // Android 11+ may require the user to select "Allow all the time" in App settings.
+            val settingsIntent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + packageName)
+            )
+            startActivity(settingsIntent)
+        } else if (Build.VERSION.SDK_INT == 29 &&
+            checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), 4102)
         } else {
             getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
