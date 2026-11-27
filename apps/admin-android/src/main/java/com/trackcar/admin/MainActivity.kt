@@ -70,10 +70,10 @@ private fun AdminScreen(){
  }
  fun createCode(){
   if(key.isBlank()){status="Administrator key is required.";return}
-  busy=true;request("/api/admin/pairing","POST",key,JSONObject().put("expires_in_minutes",60).put("max_uses",1)){r->
+  busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("expires_in_minutes",1440).put("label","Fleet vehicle installation")){r->
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create code"
-   else{code=r.optString("pairing_code");status="Pairing code created. It can be used once and expires in one hour."}
+   else{code=r.optString("install_url");status="Secure installation link created. It expires in 24 hours and can be used once."}
   }
  }
  MaterialTheme(colorScheme=darkColorScheme(primary=Cyan,background=Navy,surface=Panel,onBackground=Color.White,onSurface=Color.White)){
@@ -91,9 +91,9 @@ private fun AdminScreen(){
        OutlinedTextField(value=key,onValueChange={key=it},label={Text("Admin API key")},singleLine=true,modifier=Modifier.fillMaxWidth())
        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
         Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
-        Button(onClick={ createCode() },enabled=!busy){Text("New pairing code")}
+        Button(onClick={ createCode() },enabled=!busy){Text("Create install link")}
        }
-       if(code.isNotBlank()){Text("Pairing code",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy code")}}
+       if(code.isNotBlank()){Text("Installation link",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy code")}}
        Text(status,color=Muted)
       }
      }
