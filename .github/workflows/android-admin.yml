@@ -1,4 +1,4 @@
-name: Android Admin APK
+name: Track Car Android APKs
 
 on:
   push:
@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  build-admin:
-    name: Build Admin APK
+  build-android:
+    name: Build Admin, Installer and Agent
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,13 +39,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build debug APK
+      - name: Build all debug APKs
         run: gradle --no-daemon assembleDebug
 
-      - name: Upload APK
+      - name: Upload all APKs
         uses: actions/upload-artifact@v4
         with:
-          name: track-car-admin-debug-apk
-          path: apps/admin-android/build/outputs/apk/debug/*.apk
+          name: track-car-android-apks
+          path: |
+            apps/admin-android/build/outputs/apk/debug/*.apk
+            apps/installer-android/build/outputs/apk/debug/*.apk
+            apps/agent-android/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
