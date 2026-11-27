@@ -32,6 +32,7 @@ class TrackingService : Service(), LocationListener {
             return START_NOT_STICKY
         }
         startForeground(NOTIFICATION_ID, buildNotification("Waiting for GPS fix"))
+        DeviceApi.heartbeat(this)
         beginLocationUpdates()
         return START_STICKY
     }
@@ -72,6 +73,8 @@ class TrackingService : Service(), LocationListener {
             .putString("last_longitude", location.longitude.toString())
             .putFloat("last_accuracy_m", location.accuracy)
             .apply()
+        val speed = if (location.hasSpeed()) location.speed.toDouble() * 3.6 else null
+        DeviceApi.sendLocation(this, location.latitude, location.longitude, location.accuracy, speed)
         val accuracy = location.accuracy.toInt()
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, buildNotification("GPS active · accuracy about " + accuracy + "m"))
