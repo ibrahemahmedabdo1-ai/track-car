@@ -7,7 +7,7 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ token:
   if (!/^[a-f0-9]{64}$/i.test(token)) return json({ valid: false, error: "Invalid installation link" }, 404);
   try {
     const result = await db().query(
-      "SELECT label,expires_at,max_uses,used_count FROM pairing_invites WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now() AND used_count<max_uses LIMIT 1",
+      "SELECT label,expires_at,max_uses,used_count FROM public.pairing_invites WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now() AND used_count<max_uses LIMIT 1",
       [sha256(token)]
     );
     if (!result.rowCount) return json({ valid: false, error: "This installation link has expired, been revoked or already been used." }, 410);
