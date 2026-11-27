@@ -36,8 +36,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (hasBackgroundLocationPermission()) {
-            getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
+        val prefs = getSharedPreferences("trackcar_agent", MODE_PRIVATE)
+        if (prefs.getBoolean("pending_auto_start", false)) {
+            val granted = hasBackgroundLocationPermission()
+            prefs.edit().putBoolean("pending_auto_start", false).putBoolean("auto_start", granted).apply()
         }
     }
 
@@ -59,6 +61,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 30 &&
             checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
+            getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("pending_auto_start", true).apply()
             val settingsIntent = Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                 Uri.parse("package:" + packageName)
