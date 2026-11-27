@@ -2,30 +2,51 @@
 
 Last updated: 2026-11-27
 
-## Android Agent background foundation
-- Added a native Android LocationManager foreground service; no Google Play Services dependency is required, improving compatibility with Android head units.
-- Added an ongoing, user-visible notification with a stop action while location collection is active.
-- Added explicit foreground location permission flow and a separate opt-in for background location / restart-after-reboot.
-- Added a boot and app-update receiver that attempts restart only after an authorized operator enables auto-start and Android permissions are present.
-- Location samples are currently stored locally on-device. They are NOT yet uploaded to the server; authenticated enrollment and API sync must be completed before live fleet tracking is production-ready.
-- Android/OEM background-start restrictions can still prevent automatic restart on some models. Physical-device testing remains necessary.
+## Delivered in this implementation pass
 
-## GitHub
-Repository: `ibrahemahmedabdo1-ai/track-car`, branch: `main`.
-Admin, Installer and Agent modules remain in place. Android CI workflow builds debug APKs for all three modules.
+### Android
+- Installer, Admin and Vehicle Agent modules are included in the Gradle project.
+- Installer and Agent target Android API 21+ and use automatic device profile collection for compatibility decisions.
+- Vehicle Agent uses Android LocationManager, avoiding a Google Play Services dependency on Android head units.
+- Foreground location service displays a persistent Android notification and provides a stop action.
+- Enrollment uses a one-time pairing code, explicit location consent, and a device token returned once.
+- Device token is stored on-device; only its SHA-256 hash is stored server-side.
+- GPS samples are sent to the API with authenticated device-token requests. The app retains a bounded local queue when the network is unavailable.
+- Heartbeat includes battery and Agent version.
+- Reboot restart is opt-in and permission-gated. Android/OEM policies may still prevent restart on some models.
 
-## Vercel
-Existing projects and assigned domains remain unchanged:
-- `track-car`: `track-car-phi.vercel.app`
-- `track-car-installer`: `track-car-installer.vercel.app`
+### Backend
+- Added Next.js API and fleet console under `web/`.
+- Added health, admin pairing, admin device listing, device enrollment, heartbeat, location batch, and command polling/result endpoints.
+- Pairing codes expire and are single-use by default; only hashes are stored.
+- API database role `trackcar_api` was created with read/write access to the public schema on the development branch.
+- The API has been designed for the Track Car development branch; production data remains untouched.
 
-## Neon
-Development branch: `track-car-dev-bootstrap` (`br-bold-sky-b5zque6o`).
-The multi-device migration remains applied on this development branch only. The archived original production branch and Vercel production environment variables have not been modified.
+### Database
+- Neon project: `silent-shape-33906165`.
+- Development branch: `track-car-dev-bootstrap` (`br-bold-sky-b5zque6o`).
+- Existing vehicle, device, location, pairing, consent, command, event, release and compatibility tables are present.
+- Confirmed the least-privilege API role can read the relevant tables.
+- Original archived branch remains unchanged.
 
-## Remaining before production
-- Authenticated enrollment and device-token lifecycle.
-- Secure location batch API and retry/offline queue.
-- Admin live map and device health integration.
-- Signed release pipeline and installer handoff.
-- OEM-specific battery/autostart guidance and physical-device compatibility matrix.
+### Vercel
+- New project: `track-car-platform` (`prj_PMOFbNBV88AMauHKuArOgXV4APJT`).
+- Root directory: `web`; framework: Next.js; Node.js: 22.x.
+- Preview deployment built successfully:
+  `https://track-car-platform-git-main-otpprovider.vercel.app`
+- Existing `track-car` and `track-car-installer` projects and their domains were not changed.
+- The new project's SSO preview protection was disabled so the device API can be reached; the API itself requires admin/device authentication.
+
+## Required activation step
+The new Vercel project still needs two encrypted environment variables before the database-backed API can pass its health check:
+- `DATABASE_URL`: Neon connection string for `track-car-dev-bootstrap`, using role `trackcar_api`.
+- `TRACKCAR_ADMIN_KEY`: a strong random 32-byte administrator secret.
+
+The environment-variable values were not copied into project settings from this session because secret transfer was blocked by the platform security controls. Do not put either value in source code, a public GitHub file, or a browser variable. Add them in Vercel Project Settings → Environment Variables, then redeploy.
+
+## Verification still outstanding
+- Confirm the Android CI run for the latest commit completes and uploads all three APKs.
+- Add the two Vercel secrets and verify `GET /api/health` returns database connected.
+- Perform a real pairing/enrollment/GPS sync using a physical Android head unit.
+- Validate automatic restart and background behavior per OEM. Android 12+ and vendor firmware can restrict this.
+- Production domain migration is intentionally not performed until the new preview and real-device test pass.
