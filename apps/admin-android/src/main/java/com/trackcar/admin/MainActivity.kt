@@ -40,6 +40,7 @@ private fun AdminScreen(){
  var key by remember{mutableStateOf("")}
  var status by remember{mutableStateOf("Enter the administrator API key to connect to the fleet.")}
  var code by remember{mutableStateOf("")}
+ var vehicleLabel by remember{mutableStateOf("")}
  var devices by remember{mutableStateOf(emptyList<FleetDevice>())}
  var busy by remember{mutableStateOf(false)}
  fun request(path:String,method:String,adminKey:String,body:JSONObject?=null,done:(JSONObject?)->Unit){
@@ -71,7 +72,7 @@ private fun AdminScreen(){
  }
  fun createCode(){
   if(key.isBlank()){status="Administrator key is required.";return}
-  busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("expires_in_minutes",1440).put("label","Fleet vehicle installation")){r->
+  busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("expires_in_minutes",1440).put("label",vehicleLabel.trim().ifBlank{"Fleet vehicle installation"})){r->
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create install link"
    else{code=r.optString("install_url");status="Secure installation link created. It expires in 24 hours and can be used once."}
@@ -100,6 +101,7 @@ private fun AdminScreen(){
       Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
        Text("Administrator access",fontWeight=FontWeight.SemiBold)
        OutlinedTextField(value=key,onValueChange={key=it},label={Text("Admin API key")},singleLine=true,modifier=Modifier.fillMaxWidth())
+       OutlinedTextField(value=vehicleLabel,onValueChange={vehicleLabel=it},label={Text("Vehicle name / plate (optional)")},singleLine=true,modifier=Modifier.fillMaxWidth())
        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
         Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
         Button(onClick={ createCode() },enabled=!busy){Text("Create install link")}
