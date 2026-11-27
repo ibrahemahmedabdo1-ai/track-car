@@ -50,3 +50,17 @@ The two server-only values have not yet been added to this new Vercel project. A
 - Perform a real pairing/enrollment/GPS sync using a physical Android head unit.
 - Validate automatic restart and background behavior per OEM. Android 12+ and vendor firmware can restrict this.
 - Production domain migration is intentionally not performed until the new preview and real-device test pass.
+
+## Live activation verification — 2026-11-27
+
+- Both required server-only environment variables, `DATABASE_URL` and `TRACKCAR_ADMIN_KEY`, are now present in the Vercel Production environment.
+- Latest deployment for `track-car-platform` is READY:
+  - Deployment: `dpl_8n3Dowpnp5SPyFMUmZybzpRFXt5e`
+  - Commit: `184d7f1978bb15fa79c65b610473cf54ddbaa319`
+  - URL: `https://track-car-platform-git-main-otpprovider.vercel.app`
+- Live `GET /api/health` returned HTTP 200 with `ok: true` and `database: connected`.
+- Vercel runtime scan (last 24 hours) found one warning group on `/api/health`: pg-connection-string SSL-mode compatibility warning. It was not a database connection failure.
+- The API's authenticated admin/device workflows and a physical Android pairing/GPS upload have NOT yet been end-to-end verified.
+- Environment variables are confirmed in Production only; Preview and Development still need separate values if those environments are to be tested.
+- No custom production domain migration has been performed. Existing Track Car domains remain attached to their previous projects.
+- APKs remain debug builds for internal testing, not production-signed releases.
