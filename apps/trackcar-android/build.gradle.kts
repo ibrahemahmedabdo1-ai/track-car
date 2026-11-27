@@ -14,6 +14,20 @@ android {
         versionName = "0.2.0"
     }
     buildFeatures { compose = true }
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("TRACKCAR_KEYSTORE_PATH") ?: "release.keystore")
+            storePassword = System.getenv("TRACKCAR_KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("TRACKCAR_KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("TRACKCAR_KEY_PASSWORD") ?: ""
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
