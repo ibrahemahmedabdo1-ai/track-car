@@ -21,6 +21,18 @@ private val Cyan = Color(0xFF38C7D8)
 private val Muted = Color(0xFF9BAEC5)
 
 class MainActivity : ComponentActivity() {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val token = intent.data?.lastPathSegment ?: return
+        if (token.matches(Regex("[a-fA-F0-9]{64}"))) {
+            startActivity(
+                Intent(this, com.trackcar.agent.MainActivity::class.java)
+                    .putExtra("install_invite_token", token)
+            )
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val inviteToken = intent?.data?.lastPathSegment
