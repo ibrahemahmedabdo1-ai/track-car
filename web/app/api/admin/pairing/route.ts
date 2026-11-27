@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const expires=new Date(Date.now()+minutes*60000);
   try {
     await db().query(
-      "INSERT INTO pairing_invites(token_hash,expires_at,max_uses,label) VALUES($1,$2,$3,$4)",
+      "INSERT INTO public.pairing_invites(token_hash,expires_at,max_uses,label) VALUES($1,$2,$3,$4)",
       [sha256(code),expires,maxUses,typeof body.label==="string"?body.label.slice(0,120):"Fleet device enrollment"]
     );
     return json({pairing_code:code,expires_at:expires.toISOString(),max_uses:maxUses});
