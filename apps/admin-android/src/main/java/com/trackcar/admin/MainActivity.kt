@@ -72,8 +72,18 @@ private fun AdminScreen(){
   if(key.isBlank()){status="Administrator key is required.";return}
   busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("expires_in_minutes",1440).put("label","Fleet vehicle installation")){r->
    busy=false
-   if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create code"
+   if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create install link"
    else{code=r.optString("install_url");status="Secure installation link created. It expires in 24 hours and can be used once."}
+  }
+ }
+ fun revokeLink(){
+  if(key.isBlank()||code.isBlank())return
+  val token=code.substringAfterLast("/")
+  busy=true
+  request("/api/admin/install-links","DELETE",key,JSONObject().put("token",token)){r->
+   busy=false
+   if(r==null||r.has("error"))status=r?.optString("error")?:"Could not revoke link"
+   else{code="";status="Installation link revoked."}
   }
  }
  MaterialTheme(colorScheme=darkColorScheme(primary=Cyan,background=Navy,surface=Panel,onBackground=Color.White,onSurface=Color.White)){
@@ -93,7 +103,7 @@ private fun AdminScreen(){
         Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
         Button(onClick={ createCode() },enabled=!busy){Text("Create install link")}
        }
-       if(code.isNotBlank()){Text("Installation link",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy code")}}
+       if(code.isNotBlank()){Text("Installation link",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={revokeLink},enabled=!busy){Text("Revoke")}}}
        Text(status,color=Muted)
       }
      }
