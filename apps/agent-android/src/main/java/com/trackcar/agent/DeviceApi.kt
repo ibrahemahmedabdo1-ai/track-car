@@ -7,6 +7,10 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 object DeviceApi {
     // Stable project URL is updated after the Vercel project is created.
@@ -70,7 +74,9 @@ object DeviceApi {
             put("longitude", longitude)
             put("accuracy_m", accuracy.toDouble())
             if (speedKmh != null) put("speed_kmh", speedKmh)
-            put("recorded_at", java.time.Instant.now().toString())
+            val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            formatter.timeZone = TimeZone.getTimeZone("UTC")
+            put("recorded_at", formatter.format(Date()))
         }
         Thread {
             try {
