@@ -90,8 +90,8 @@ private fun AdminScreen(){
        Text("Administrator access",fontWeight=FontWeight.SemiBold)
        OutlinedTextField(value=key,onValueChange={key=it},label={Text("Admin API key")},singleLine=true,modifier=Modifier.fillMaxWidth())
        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-        Button(onClick={ { load() } },enabled=!busy){Text("Load fleet")}
-        Button(onClick={ { createCode() } },enabled=!busy){Text("New pairing code")}
+        Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
+        Button(onClick={ createCode() },enabled=!busy){Text("New pairing code")}
        }
        if(code.isNotBlank()){Text("Pairing code",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy code")}}
        Text(status,color=Muted)
