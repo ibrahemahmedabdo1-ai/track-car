@@ -77,3 +77,7 @@ The two server-only values have not yet been added to this new Vercel project. A
 - The unified Android APK build passed in GitHub Actions run `45999155618`. The latest test APK is available from the GitHub release.
 - Added a manual signed-release workflow and Gradle release signing configuration. A production-signed APK is still pending the four repository secrets listed in `docs/DEPLOYMENT_SETUP.md`.
 - Still outstanding: physical head-unit installation, actual enrollment and GPS end-to-end test, OEM-specific background/reboot validation, and custom-domain migration.
+
+- Follow-up Android build run `46002056975` passed on commit `70846adeba6f095672356375119426f32453c1e8`; it includes repeat-install deep-link handling and the updated test APK was published to the existing GitHub release.
+- Added `singleTop` launch mode so repeat invitation links can reach the existing launcher activity; `onNewIntent` forwards the invitation token to Vehicle Agent.
+- Added `.github/workflows/android-release.yml` for manually building a signed production APK. Its keystore path resolves from the repository root; it remains gated on the four GitHub Actions secrets.
