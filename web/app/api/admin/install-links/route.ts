@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const expires = new Date(Date.now() + minutes * 60000);
   try {
     await db().query(
-      "INSERT INTO pairing_invites(token_hash,expires_at,max_uses,label) VALUES($1,$2,1,$3)",
+      "INSERT INTO public.pairing_invites(token_hash,expires_at,max_uses,label) VALUES($1,$2,1,$3)",
       [sha256(token), expires, label]
     );
     return json({
@@ -37,7 +37,7 @@ export async function DELETE(req: NextRequest) {
   if (token.length < 40) return json({ error: "A valid installation token is required" }, 400);
   try {
     const result = await db().query(
-      "UPDATE pairing_invites SET revoked_at=now() WHERE token_hash=$1 AND revoked_at IS NULL RETURNING id",
+      "UPDATE public.pairing_invites SET revoked_at=now() WHERE token_hash=$1 AND revoked_at IS NULL RETURNING id",
       [sha256(token)]
     );
     if (!result.rowCount) return json({ error: "Invitation not found or already used/revoked" }, 404);
