@@ -27,6 +27,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="track-car-platform-git-main-otpprovider.vercel.app" android:pathPrefix="/install/" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="trackcar" android:host="install" />
+            </intent-filter>
         </activity>
         <service android:name="com.trackcar.agent.TrackingService" android:exported="false" android:foregroundServiceType="location" />
         <receiver android:name="com.trackcar.agent.BootReceiver" android:enabled="true" android:exported="false">
