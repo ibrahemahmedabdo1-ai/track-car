@@ -19,11 +19,13 @@ export async function POST(req:NextRequest) {
     if(!invite.rowCount){await client.query("ROLLBACK");return json({error:"Pairing code is invalid, expired, revoked or already used"},400);}
     const token=randomToken(32);
     const deviceCode="TC-"+randomToken(5).toUpperCase();
+    const inviteLabel=String(invite.rows[0].label||"").trim();
+    const assignedLabel=inviteLabel && inviteLabel!=="Fleet vehicle installation" ? inviteLabel : label;
     const manufacturer=String(info.manufacturer||"Unknown").slice(0,120);
     const model=String(info.model||"Unknown").slice(0,120);
     const result=await client.query(
       "INSERT INTO public.devices(device_code,label,platform,status,api_token_hash,manufacturer,model,device_codename,android_release,sdk_int,build_fingerprint,security_patch,cpu_abis,agent_version,capabilities,enrollment_state,consent_at,last_seen_at) VALUES($1,$2,'android','online',$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13::jsonb,'enrolled',now(),now()) RETURNING id,device_code",
-      [deviceCode,label,sha256(token),manufacturer,model,String(info.codename||"").slice(0,120),String(info.android_release||"").slice(0,40),Number(info.sdk_int)||null,String(info.build_fingerprint||"").slice(0,300),String(info.security_patch||"").slice(0,40),JSON.stringify(Array.isArray(info.cpu_abis)?info.cpu_abis.slice(0,8):[]),String(info.agent_version||"1.0.0").slice(0,40),JSON.stringify({gps:true,background_location:true})]
+      [deviceCode,assignedLabel,sha256(token),manufacturer,model,String(info.codename||"").slice(0,120),String(info.android_release||"").slice(0,40),Number(info.sdk_int)||null,String(info.build_fingerprint||"").slice(0,300),String(info.security_patch||"").slice(0,40),JSON.stringify(Array.isArray(info.cpu_abis)?info.cpu_abis.slice(0,8):[]),String(info.agent_version||"1.0.0").slice(0,40),JSON.stringify({gps:true,background_location:true})]
     );
     await client.query(
       "INSERT INTO public.device_consents(device_id,consent_type,consent_version,granted,notice_text) VALUES($1,'location','1.0',true,$2)",
