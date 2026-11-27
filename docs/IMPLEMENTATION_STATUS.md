@@ -64,3 +64,16 @@ The two server-only values have not yet been added to this new Vercel project. A
 - Environment variables are confirmed in Production only; Preview and Development still need separate values if those environments are to be tested.
 - No custom production domain migration has been performed. Existing Track Car domains remain attached to their previous projects.
 - APKs remain debug builds for internal testing, not production-signed releases.
+
+
+## Completion pass — 2026-11-27
+
+- Fixed the JSX syntax error in `web/app/install/[token]/page.tsx` that caused Vercel build `dpl_35FL34ugU2HBcEjUtisywvHuP3WF` to fail.
+- Added `.github/workflows/web-build.yml`; GitHub Actions web build passed on commit `ac5bbfc753935b6323a9e181c9fb93eece4d2337` (run `45999733206`).
+- Deployed production commit `ac5bbfc753935b6323a9e181c9fb93eece4d2337`; Vercel deployment `dpl_2YC9bL8Vr77Vzb1xZ2tX5m3pcs4g` reached READY and owns the stable production aliases.
+- Live health check returned HTTP 200, `ok: true`, and `database: connected`.
+- Added a dedicated Neon runtime role `trackcar_runtime` and configured server-only `TRACKCAR_DATABASE_URL` in Vercel Production. Runtime queries use the production branch and explicit `public` table names.
+- Live invitation validation was tested with a temporary one-use invitation; the API returned valid metadata and the temporary record was removed afterward.
+- The unified Android APK build passed in GitHub Actions run `45999155618`. The latest test APK is available from the GitHub release.
+- Added a manual signed-release workflow and Gradle release signing configuration. A production-signed APK is still pending the four repository secrets listed in `docs/DEPLOYMENT_SETUP.md`.
+- Still outstanding: physical head-unit installation, actual enrollment and GPS end-to-end test, OEM-specific background/reboot validation, and custom-domain migration.
