@@ -14,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -31,6 +34,8 @@ class MainActivity:ComponentActivity(){
 
 @Composable
 private fun AdminScreen(){
+ val activity = LocalContext.current as ComponentActivity
+ val clipboard = LocalClipboardManager.current
  var key by remember{mutableStateOf("")}
  var status by remember{mutableStateOf("Enter the administrator API key to connect to the fleet.")}
  var code by remember{mutableStateOf("")}
@@ -48,7 +53,7 @@ private fun AdminScreen(){
     result=JSONObject(stream?.bufferedReader()?.use{it.readText()}?: "{}")
     c.disconnect()
    }catch(e:Exception){result=JSONObject().put("error",e.message?:"Network error")}
-   runOnUiThread{done(result)}
+   activity.runOnUiThread{done(result)}
   }.start()
  }
  fun load(){
@@ -88,7 +93,7 @@ private fun AdminScreen(){
         Button(onClick={load},enabled=!busy){Text("Load fleet")}
         Button(onClick={createCode},enabled=!busy){Text("New pairing code")}
        }
-       if(code.isNotBlank()){Text("Pairing code",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={android.content.ClipData.newPlainText("Pairing code",code).let{clip->getClipboardManager()?.setPrimaryClip(clip)}},enabled=false){Text("Copy from dashboard")}}
+       if(code.isNotBlank()){Text("Pairing code",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy code")}}
        Text(status,color=Muted)
       }
      }
