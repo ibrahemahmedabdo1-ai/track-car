@@ -15,42 +15,52 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
+    private var pendingPairingCode: String = ""
+    private var statusCallback: ((String) -> Unit)? = null
+
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
             Build.VERSION.SDK_INT < 23
-        ) startTrackingService()
+        ) enrollPendingDevice()
+        else statusCallback?.invoke("Location permission is required to enroll this vehicle.")
     }
 
     private val backgroundPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit()
-            .putBoolean("auto_start", granted)
-            .putBoolean("pending_auto_start", false)
-            .apply()
+        getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", granted).apply()
+        statusCallback?.invoke(if (granted) "Automatic restart permission enabled." else "Background location permission was not granted.")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             AgentScreen(
-                onStart = { requestTrackingPermissions() },
+                onEnroll = { code, update ->
+                    statusCallback = update
+                    pendingPairingCode = code.trim()
+                    if (pendingPairingCode.length < 20) update("Enter a valid pairing code from the fleet administrator.")
+                    else requestTrackingPermissions()
+                },
                 onEnableAutoStart = { requestBackgroundPermission() },
                 onStop = {
                     getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", false).apply()
                     stopService(Intent(this, TrackingService::class.java))
+                    statusCallback?.invoke("Location service stopped.")
                 }
             )
         }
@@ -60,7 +70,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         val prefs = getSharedPreferences("trackcar_agent", MODE_PRIVATE)
         if (prefs.getBoolean("pending_auto_start", false) && Build.VERSION.SDK_INT >= 30) {
-            val granted = hasBackgroundLocationPermission()
+            val granted = checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
             prefs.edit().putBoolean("pending_auto_start", false).putBoolean("auto_start", granted).apply()
         }
     }
@@ -72,58 +82,65 @@ class MainActivity : ComponentActivity() {
         )
         if (Build.VERSION.SDK_INT >= 33) permissions += Manifest.permission.POST_NOTIFICATIONS
         if (Build.VERSION.SDK_INT >= 23) locationPermissionLauncher.launch(permissions.toTypedArray())
-        else startTrackingService()
+        else enrollPendingDevice()
     }
 
-    private fun hasBackgroundLocationPermission(): Boolean =
-        Build.VERSION.SDK_INT < 29 ||
-            checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+    private fun enrollPendingDevice() {
+        statusCallback?.invoke("Connecting securely to Track Car…")
+        DeviceApi.enroll(this, pendingPairingCode) { success, message ->
+            runOnUiThread {
+                statusCallback?.invoke(message)
+                if (success) {
+                    getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
+                    val intent = Intent(this, TrackingService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+                }
+            }
+        }
+    }
 
     private fun requestBackgroundPermission() {
         if (Build.VERSION.SDK_INT >= 30 &&
             checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
             getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("pending_auto_start", true).apply()
-            startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + packageName))
-            )
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + packageName)))
         } else if (Build.VERSION.SDK_INT == 29 &&
             checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) {
             backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         } else {
             getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", true).apply()
+            statusCallback?.invoke("Automatic restart permission enabled.")
         }
-    }
-
-    private fun startTrackingService() {
-        val intent = Intent(this, TrackingService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
     }
 }
 
-@androidx.compose.runtime.Composable
-private fun AgentScreen(onStart: () -> Unit, onEnableAutoStart: () -> Unit, onStop: () -> Unit) {
-    MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF38C7D8), background = Color(0xFF0B1424))) {
+@Composable
+private fun AgentScreen(
+    onEnroll: (String, (String) -> Unit) -> Unit,
+    onEnableAutoStart: () -> Unit,
+    onStop: () -> Unit
+) {
+    var code by remember { mutableStateOf("") }
+    var consent by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("Not enrolled. Request a pairing code from your fleet administrator.") }
+    MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(primary = Color(0xFF38C7D8), background = Color(0xFF0B1424))) {
         Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF0B1424)) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("TRACK CAR", color = Color(0xFF38C7D8))
                 Text("Vehicle Agent", color = Color.White, style = MaterialTheme.typography.headlineMedium)
-                Text("Automatic fleet location service", color = Color(0xFFB7C7DA))
-                Text(
-                    "Location starts only after an authorized operator enables it. Android shows an ongoing notification while tracking is active.",
-                    color = Color(0xFF9BAEC5)
-                )
-                Button(onClick = onStart) { Text("Start location service") }
-                Button(onClick = onEnableAutoStart) { Text("Allow restart after reboot") }
+                Text("Secure vehicle enrollment and GPS sync", color = Color(0xFFB7C7DA))
+                TextField(value = code, onValueChange = { code = it }, label = { Text("Fleet pairing code") }, singleLine = true)
+                androidx.compose.foundation.layout.Row {
+                    Checkbox(checked = consent, onCheckedChange = { consent = it })
+                    Text("I authorize this company vehicle device to share its location with the fleet administrator.", color = Color(0xFFB7C7DA))
+                }
+                Button(onClick = { if (consent) onEnroll(code) { status = it } else status = "Please confirm the vehicle location notice first." }) { Text("Enroll vehicle and start") }
+                Button(onClick = onEnableAutoStart) { Text("Allow background restart") }
                 Button(onClick = onStop) { Text("Stop location service") }
-                Text(
-                    "Current stage: GPS samples are stored locally. Secure enrollment and live server sync are not connected yet.",
-                    color = Color(0xFFFFC46B)
-                )
+                Text(status, color = if (status.contains("failed") || status.contains("required")) Color(0xFFFF9A9A) else Color(0xFF9BE4D1))
+                Text("While tracking is active, Android displays a location-service notification. Some vehicle head units may restrict automatic restart.", color = Color(0xFF8299B2))
             }
         }
     }
