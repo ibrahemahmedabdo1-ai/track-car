@@ -13,7 +13,7 @@ export async function POST(req:NextRequest) {
   try {
     await client.query("BEGIN");
     const invite=await client.query(
-      "UPDATE pairing_invites SET used_count=used_count+1 WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now() AND used_count<max_uses RETURNING id,label",
+      "UPDATE public.pairing_invites SET used_count=used_count+1 WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now() AND used_count<max_uses RETURNING id,label",
       [sha256(code)]
     );
     if(!invite.rowCount){await client.query("ROLLBACK");return json({error:"Pairing code is invalid, expired, revoked or already used"},400);}
@@ -22,15 +22,15 @@ export async function POST(req:NextRequest) {
     const manufacturer=String(info.manufacturer||"Unknown").slice(0,120);
     const model=String(info.model||"Unknown").slice(0,120);
     const result=await client.query(
-      "INSERT INTO devices(device_code,label,platform,status,api_token_hash,manufacturer,model,device_codename,android_release,sdk_int,build_fingerprint,security_patch,cpu_abis,agent_version,capabilities,enrollment_state,consent_at,last_seen_at) VALUES($1,$2,'android','online',$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13::jsonb,'enrolled',now(),now()) RETURNING id,device_code",
+      "INSERT INTO public.devices(device_code,label,platform,status,api_token_hash,manufacturer,model,device_codename,android_release,sdk_int,build_fingerprint,security_patch,cpu_abis,agent_version,capabilities,enrollment_state,consent_at,last_seen_at) VALUES($1,$2,'android','online',$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13::jsonb,'enrolled',now(),now()) RETURNING id,device_code",
       [deviceCode,label,sha256(token),manufacturer,model,String(info.codename||"").slice(0,120),String(info.android_release||"").slice(0,40),Number(info.sdk_int)||null,String(info.build_fingerprint||"").slice(0,300),String(info.security_patch||"").slice(0,40),JSON.stringify(Array.isArray(info.cpu_abis)?info.cpu_abis.slice(0,8):[]),String(info.agent_version||"1.0.0").slice(0,40),JSON.stringify({gps:true,background_location:true})]
     );
     await client.query(
-      "INSERT INTO device_consents(device_id,consent_type,consent_version,granted,notice_text) VALUES($1,'location','1.0',true,$2)",
+      "INSERT INTO public.device_consents(device_id,consent_type,consent_version,granted,notice_text) VALUES($1,'location','1.0',true,$2)",
       [result.rows[0].id,"Authorized fleet vehicle location tracking was enabled during device enrollment."]
     );
     await client.query(
-      "INSERT INTO device_events(device_id,event_type,event_payload) VALUES($1,'device_enrolled',$2::jsonb)",
+      "INSERT INTO public.device_events(device_id,event_type,event_payload) VALUES($1,'device_enrolled',$2::jsonb)",
       [result.rows[0].id,JSON.stringify({manufacturer,model,android_release:info.android_release||null})]
     );
     await client.query("COMMIT");
