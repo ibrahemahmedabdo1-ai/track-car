@@ -29,7 +29,10 @@ class MainActivity : ComponentActivity() {
             AgentScreen(
                 onStart = { requestTrackingPermissions() },
                 onEnableAutoStart = { requestBackgroundPermission() },
-                onStop = { stopService(Intent(this, TrackingService::class.java)) }
+                onStop = {
+                    getSharedPreferences("trackcar_agent", MODE_PRIVATE).edit().putBoolean("auto_start", false).apply()
+                    stopService(Intent(this, TrackingService::class.java))
+                }
             )
         }
     }
