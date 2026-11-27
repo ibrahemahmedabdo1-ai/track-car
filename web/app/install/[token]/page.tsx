@@ -9,7 +9,7 @@ export default function InstallPage({ params }: { params: Promise<{ token: strin
   const [message, setMessage] = useState("Checking your secure installation invitation…");
   useEffect(() => {
     fetch("/api/install/" + encodeURIComponent(token), { cache: "no-store" })
-      .then(async r => { const d = await r.json(); if (!r.ok || !d.valid) throw new Error(d.error || "Invitation is not valid"); setState("valid"); setMessage("Your one-time invitation is ready. Download Track Car, install it using Android's installer, then open this page again and select Open Track Car to continue enrollment."); })
+      .then(async r => { const d = await r.json(); if (!r.ok || !d.valid) throw new Error(d.error || "Invitation is not valid"); setState("valid"); setMessage("Installation invitation for " + (d.label || "your vehicle") + " is ready. Download Track Car, install it using Android's installer, then open this page again and select Open Track Car to continue enrollment."); })
       .catch(e => { setState("invalid"); setMessage(e instanceof Error ? e.message : "Could not validate invitation"); });
   }, [token]);
   return <main className="shell" style={{maxWidth:620}}>
@@ -18,7 +18,7 @@ export default function InstallPage({ params }: { params: Promise<{ token: strin
       <h1>Install Track Car</h1>
       <p className="muted">{message}</p>
       {state === "valid" && <>
-        <a className="btn" style={{display:"inline-block",textDecoration:"none",marginTop:12}} href={APK_URL}>Download Track Car test APK</a>
+        <a className="btn" style={{display:"inline-block",textDecoration:"none",marginTop:12}} href={APK_URL} rel="noreferrer" referrerPolicy="no-referrer">Download Track Car test APK</a>
         <p className="small" style={{color:"#f5c66b"}}>Test build only: this APK is debug-signed, not a production release. A company-owned release signing key is required before distributing production updates.</p>
         <p className="muted small">Android will ask you to confirm installation. If prompted, allow this browser to install apps, then confirm the package installer.</p>
         <a className="btn secondary" style={{display:"inline-block",textDecoration:"none",marginTop:8}} href={"trackcar://install/" + token}>Open Track Car after installation</a>
