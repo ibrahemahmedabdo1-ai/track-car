@@ -19,7 +19,7 @@ export default function InstallPage({ params }: { params: Promise<{ token: strin
       <p className="muted">{message}</p>
       {state === "valid" && <>
         <a className="btn" style={{display:"inline-block",textDecoration:"none",marginTop:12}} href={APK_URL}>Download Track Car test APK</a>
-        <p className="small" style={{color:"#f5c66b"}}>Test build only: this APK is debug-signed, not a production release. A company-owned release signing key is required before distributing production updates.
+        <p className="small" style={{color:"#f5c66b"}}>Test build only: this APK is debug-signed, not a production release. A company-owned release signing key is required before distributing production updates.</p>
         <p className="muted small">Android will ask you to confirm installation. If prompted, allow this browser to install apps, then confirm the package installer.</p>
         <a className="btn secondary" style={{display:"inline-block",textDecoration:"none",marginTop:8}} href={"trackcar://install/" + token}>Open Track Car after installation</a>
         <p className="muted small">The invitation is one-use and expires automatically. Enrollment starts only after you explicitly approve location sharing in the app.</p>
