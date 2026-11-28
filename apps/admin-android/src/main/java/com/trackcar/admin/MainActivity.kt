@@ -27,7 +27,7 @@ private val Panel=Color(0xFF1B2942)
 private val Cyan=Color(0xFF36C5D8)
 private val Muted=Color(0xFF9AAAC2)
 
-data class FleetDevice(val label:String,val code:String,val model:String,val status:String,val lastSeen:String,val lat:Double?,val lng:Double?)
+data class FleetDevice(val label:String,val code:String,val model:String,val status:String,val lastSeen:String,val lat:Double?,val lng:Double?)\ndata class InstallLink(val id:String,val label:String,val createdAt:String,val enrolledDevices:Int,val revoked:Boolean)
 
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent { AdminScreen() }}
@@ -66,7 +66,15 @@ private fun AdminScreen(){
    else{
     val arr=r.optJSONArray("devices");val list=mutableListOf<FleetDevice>()
     if(arr!=null)for(i in 0 until arr.length()){val d=arr.getJSONObject(i);list.add(FleetDevice(d.optString("label"),d.optString("device_code"),d.optString("manufacturer")+" "+d.optString("model"),d.optString("status"),d.optString("last_seen_at"),if(d.isNull("last_lat"))null else d.optDouble("last_lat"),if(d.isNull("last_lng"))null else d.optDouble("last_lng")))}
-    devices=list;status="Connected. Loaded "+list.size+" devices."
+    devices=list
+    request("/api/admin/install-links","GET",key){lr->
+     if(lr!=null&&!lr.has("error")){
+      val linkArray=lr.optJSONArray("links");val linkList=mutableListOf<InstallLink>()
+      if(linkArray!=null)for(j in 0 until linkArray.length()){val x=linkArray.getJSONObject(j);linkList.add(InstallLink(x.optString("id"),x.optString("label"),x.optString("created_at"),x.optInt("enrolled_devices"),!x.isNull("revoked_at")))}
+      links=linkList
+     }
+     status="Connected. Loaded "+list.size+" devices and "+links.size+" installation links."
+    }
    }
   }
  }
@@ -76,6 +84,24 @@ private fun AdminScreen(){
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create install link"
    else{code=r.optString("install_url");inviteId=r.optString("invite_id");status="Reusable installation link created. No automatic expiry; it can enroll multiple separate devices until Admin revokes it."}
+  }
+ }
+ fun revokeInvite(id:String){
+  if(key.isBlank())return
+  busy=true
+  request("/api/admin/install-links","DELETE",key,JSONObject().put("invite_id",id)){r->
+   busy=false
+   if(r==null||r.has("error"))status=r?.optString("error")?:"Could not revoke link"
+   else{
+    request("/api/admin/install-links","GET",key){lr->
+     if(lr!=null&&!lr.has("error")){
+      val arr=lr.optJSONArray("links");val list=mutableListOf<InstallLink>()
+      if(arr!=null)for(j in 0 until arr.length()){val x=arr.getJSONObject(j);list.add(InstallLink(x.optString("id"),x.optString("label"),x.optString("created_at"),x.optInt("enrolled_devices"),!x.isNull("revoked_at")))}
+      links=list
+     }
+     status="Installation link revoked. Existing devices remain active."
+    }
+   }
   }
  }
  fun revokeLink(){
@@ -113,6 +139,18 @@ private fun AdminScreen(){
      }
     }
     item{Text("Devices ("+devices.size+")",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)}
+    item{Text("Installation links ("+links.size+")",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)}
+    items(links){link->
+     Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){
+      Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+       Row(verticalAlignment=Alignment.CenterVertically){Text(link.label.ifBlank{"Fleet installation"},fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f));Text(if(link.revoked)"Revoked" else "Active · no expiry",color=if(link.revoked)Muted else Cyan)}
+       Text("Enrolled devices: "+link.enrolledDevices,color=Muted,style=MaterialTheme.typography.bodySmall)
+       Text("Created: "+link.createdAt,color=Muted,style=MaterialTheme.typography.bodySmall)
+       if(!link.revoked)Button(onClick={revokeInvite(link.id)},enabled=!busy){Text("Revoke link")}
+      }
+     }
+    }
+    item{Text("Registered devices ("+devices.size+")",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge)}
     items(devices){d->
      Card(colors=CardDefaults.cardColors(containerColor=Panel),shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){
       Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
