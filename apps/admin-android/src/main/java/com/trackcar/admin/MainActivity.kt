@@ -82,7 +82,8 @@ private fun AdminScreen(){
   if(key.isBlank()||code.isBlank())return
   val token=code.substringAfterLast("/")
   busy=true
-  request("/api/admin/install-links","DELETE",key,JSONObject().put("token",token)){r->
+  val payload=if(inviteId.isNotBlank()) JSONObject().put("invite_id",inviteId) else JSONObject().put("token",token)
+  request("/api/admin/install-links","DELETE",key,payload){r->
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not revoke link"
    else{code="";inviteId="";status="Installation link revoked."}
