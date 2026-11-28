@@ -99,7 +99,7 @@ private fun AdminScreen(){
       if(arr!=null)for(j in 0 until arr.length()){val x=arr.getJSONObject(j);list.add(InstallLink(x.optString("id"),x.optString("label"),x.optString("created_at"),x.optInt("enrolled_devices"),!x.isNull("revoked_at")))}
       links=list
      }
-     status="Installation link revoked. Existing devices remain active."
+     if(id==inviteId){code="";inviteId=""}\n     status="Installation link revoked. Existing devices remain active."
     }
    }
   }
@@ -133,7 +133,7 @@ private fun AdminScreen(){
         Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
         Button(onClick={ createCode() },enabled=!busy){Text("Create install link")}
        }
-       if(code.isNotBlank()){Text("Reusable link · no expiry · multiple separate devices",color=Cyan);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,code)},"Send installation link"))}){Text("Share")};Button(onClick={revokeLink()},enabled=!busy){Text("Revoke")}}}
+       if(code.isNotBlank()){Text("Reusable link · no expiry · multiple separate devices",color=Cyan);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,code)},"Send installation link"))}){Text("Share")};Button(onClick={revokeInvite(inviteId)},enabled=!busy){Text("Revoke")}}}
        Text(status,color=Muted)
       }
      }
