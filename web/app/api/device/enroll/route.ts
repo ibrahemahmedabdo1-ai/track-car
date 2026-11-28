@@ -13,7 +13,7 @@ export async function POST(req:NextRequest) {
   try {
     await client.query("BEGIN");
     const invite=await client.query(
-      "UPDATE public.pairing_invites SET used_count=used_count+1 WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now() AND used_count<max_uses RETURNING id,label",
+      "UPDATE public.pairing_invites SET used_count=CASE WHEN max_uses IS NULL THEN used_count ELSE used_count+1 END WHERE token_hash=$1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) AND (max_uses IS NULL OR used_count<max_uses) RETURNING id,label",
       [sha256(code)]
     );
     if(!invite.rowCount){await client.query("ROLLBACK");return json({error:"Pairing code is invalid, expired, revoked or already used"},400);}
@@ -33,12 +33,13 @@ export async function POST(req:NextRequest) {
     );
     await client.query(
       "INSERT INTO public.device_events(device_id,event_type,event_payload) VALUES($1,'device_enrolled',$2::jsonb)",
-      [result.rows[0].id,JSON.stringify({manufacturer,model,android_release:info.android_release||null})]
+      [result.rows[0].id,JSON.stringify({manufacturer,model,android_release:info.android_release||null,invite_id:invite.rows[0].id})]
     );
     await client.query("COMMIT");
     return json({device_id:result.rows[0].id,device_code:result.rows[0].device_code,device_token:token,api_base_url:process.env.NEXT_PUBLIC_API_BASE_URL||""});
   } catch(e) {
     await client.query("ROLLBACK");
+    console.error("trackcar_device_enrollment_failed",e);
     return json({error:"Enrollment failed"},500);
   } finally { client.release(); }
 }
