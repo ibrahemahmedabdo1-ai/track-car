@@ -9,6 +9,7 @@ Next.js API and fleet console deployed separately from the Android Gradle module
 ## Routes
 - GET /api/health
 - POST /api/admin/install-links (x-admin-key): create a reusable installation link with no automatic expiry and unlimited device enrollments until revoked.
+- POST /api/admin/pairing (x-admin-key): create a reusable pairing code with the same no-expiry, unlimited-device behavior.
 - DELETE /api/admin/install-links (x-admin-key): revoke an installation link.
 - GET /api/install/[token]: validate an installation link.
 - GET /api/admin/devices (x-admin-key)
