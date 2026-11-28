@@ -54,7 +54,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.TRACKCAR_RELEASE_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.TRACKCAR_RELEASE_KEY_ALIAS }}
         run: |
-          keytool -list -keystore signing/trackcar-release.jks -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" >/dev/null
+          keytool -list -keystore signing/trackcar-release.jks -alias "$KEY_ALIAS" -storepass:env KEYSTORE_PASSWORD >/dev/null
           echo "Release keystore and alias verified."
 
       - name: Build signed release APK
