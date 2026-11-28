@@ -72,10 +72,10 @@ private fun AdminScreen(){
  }
  fun createCode(){
   if(key.isBlank()){status="Administrator key is required.";return}
-  busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("expires_in_minutes",1440).put("label",vehicleLabel.trim().ifBlank{"Fleet vehicle installation"})){r->
+  busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("label",vehicleLabel.trim().ifBlank{"Fleet vehicle installation"})){r->
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create install link"
-   else{code=r.optString("install_url");status="Secure installation link created. It expires in 24 hours and can be used once."}
+   else{code=r.optString("install_url");status="Reusable installation link created. No automatic expiry; it can enroll multiple separate devices until Admin revokes it."}
   }
  }
  fun revokeLink(){
@@ -106,7 +106,7 @@ private fun AdminScreen(){
         Button(onClick={ load() },enabled=!busy){Text("Load fleet")}
         Button(onClick={ createCode() },enabled=!busy){Text("Create install link")}
        }
-       if(code.isNotBlank()){Text("Installation link",color=Muted);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,code)},"Send installation link"))}){Text("Share")};Button(onClick={revokeLink()},enabled=!busy){Text("Revoke")}}}
+       if(code.isNotBlank()){Text("Reusable link · no expiry · multiple separate devices",color=Cyan);Text(code,color=Cyan,fontWeight=FontWeight.Bold);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={clipboard.setText(AnnotatedString(code))}){Text("Copy link")};Button(onClick={activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="text/plain";putExtra(Intent.EXTRA_TEXT,code)},"Send installation link"))}){Text("Share")};Button(onClick={revokeLink()},enabled=!busy){Text("Revoke")}}}
        Text(status,color=Muted)
       }
      }
