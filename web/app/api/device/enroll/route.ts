@@ -20,7 +20,8 @@ export async function POST(req:NextRequest) {
     const token=randomToken(32);
     const deviceCode="TC-"+randomToken(5).toUpperCase();
     const inviteLabel=String(invite.rows[0].label||"").trim();
-    const assignedLabel=inviteLabel && inviteLabel!=="Fleet vehicle installation" ? inviteLabel : label;
+    // Keep each device name supplied by that device; the shared link label is fleet context only.
+    const assignedLabel=label;
     const manufacturer=String(info.manufacturer||"Unknown").slice(0,120);
     const model=String(info.model||"Unknown").slice(0,120);
     const result=await client.query(
@@ -33,7 +34,7 @@ export async function POST(req:NextRequest) {
     );
     await client.query(
       "INSERT INTO public.device_events(device_id,event_type,event_payload) VALUES($1,'device_enrolled',$2::jsonb)",
-      [result.rows[0].id,JSON.stringify({manufacturer,model,android_release:info.android_release||null,invite_id:invite.rows[0].id})]
+      [result.rows[0].id,JSON.stringify({manufacturer,model,android_release:info.android_release||null,invite_id:invite.rows[0].id,invite_label:inviteLabel||null})]
     );
     await client.query("COMMIT");
     return json({device_id:result.rows[0].id,device_code:result.rows[0].device_code,device_token:token,api_base_url:process.env.NEXT_PUBLIC_API_BASE_URL||""});
