@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     const result = await db().query(
       `SELECT pi.id,pi.label,pi.created_at,pi.revoked_at,pi.expires_at,pi.max_uses,
-        COUNT(DISTINCT de.device_id) FILTER (WHERE de.event_type='device_enrolled')::int AS enrolled_devices
+        (COUNT(DISTINCT de.device_id) FILTER (WHERE de.event_type='device_enrolled'))::int AS enrolled_devices
        FROM public.pairing_invites pi
        LEFT JOIN public.device_events de ON de.event_payload->>'invite_id'=pi.id::text
        GROUP BY pi.id
