@@ -45,16 +45,25 @@ https://github.com/ibrahemahmedabdo1-ai/track-car/releases/download/track-car-an
 
 A manual release workflow is prepared at `.github/workflows/android-release.yml`. This is the first official release, so a new company-controlled signing keystore must be created once and preserved securely for all future updates.
 
-Before running it, add these four GitHub Actions repository secrets:
+Generate the first key on Windows with PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\\scripts\\windows\\create-trackcar-release-keystore.ps1
+```
+
+The script creates a 4096-bit RSA JKS key valid for 10,000 days, plus a Base64 text file under the ignored local `signing/` folder. When prompted for the key password, press Enter to reuse the keystore password. Back up the `.jks` file and password securely in at least two places. Never upload the `.jks` file to GitHub or send passwords in chat.
+
+Before running the release workflow, add these four GitHub Actions repository secrets:
 
 1. `TRACKCAR_RELEASE_KEYSTORE_BASE64` — Base64-encoded Android release keystore.
 2. `TRACKCAR_RELEASE_KEYSTORE_PASSWORD` — keystore password.
 3. `TRACKCAR_RELEASE_KEY_ALIAS` — signing key alias.
-4. `TRACKCAR_RELEASE_KEY_PASSWORD` — key password.
+4. `TRACKCAR_RELEASE_KEY_PASSWORD` — key password (the same value as the keystore password when using the helper script).
 
 Never commit the keystore or passwords to the repository or send them in chat. Losing the keystore can prevent upgrades of the installed app.
 
-After adding all four secrets, run **Track Car Signed Production APK** from GitHub Actions using workflow_dispatch. It uploads `TrackCar-release.apk` as an artifact. The release workflow does not publish a public release automatically.
+After adding all four secrets, run **Track Car Signed Production APK** from GitHub Actions using workflow_dispatch. The workflow verifies the keystore alias, builds the release APK, verifies the APK signature with `apksigner`, and uploads `TrackCar-release.apk` plus its SHA-256 checksum as an artifact. The release workflow does not publish a public release automatically.
 
 ## Vehicle installation flow
 
