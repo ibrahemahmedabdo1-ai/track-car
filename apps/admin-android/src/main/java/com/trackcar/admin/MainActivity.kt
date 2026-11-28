@@ -27,7 +27,8 @@ private val Panel=Color(0xFF1B2942)
 private val Cyan=Color(0xFF36C5D8)
 private val Muted=Color(0xFF9AAAC2)
 
-data class FleetDevice(val label:String,val code:String,val model:String,val status:String,val lastSeen:String,val lat:Double?,val lng:Double?)\ndata class InstallLink(val id:String,val label:String,val createdAt:String,val enrolledDevices:Int,val revoked:Boolean)
+data class FleetDevice(val label:String,val code:String,val model:String,val status:String,val lastSeen:String,val lat:Double?,val lng:Double?)
+data class InstallLink(val id:String,val label:String,val createdAt:String,val enrolledDevices:Int,val revoked:Boolean)
 
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent { AdminScreen() }}
@@ -101,7 +102,8 @@ private fun AdminScreen(){
       if(arr!=null)for(j in 0 until arr.length()){val x=arr.getJSONObject(j);list.add(InstallLink(x.optString("id"),x.optString("label"),x.optString("created_at"),x.optInt("enrolled_devices"),!x.isNull("revoked_at")))}
       links=list
      }
-     if(id==inviteId){code="";inviteId=""}\n     status="Installation link revoked. Existing devices remain active."
+     if(id==inviteId){code="";inviteId=""}
+     status="Installation link revoked. Existing devices remain active."
     }
    }
   }
