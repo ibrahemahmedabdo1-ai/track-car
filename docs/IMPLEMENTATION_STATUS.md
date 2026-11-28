@@ -1,98 +1,94 @@
-# Track Car Implementation Status
+# Track Car — Current Implementation Status
 
-Last updated: 2026-11-27
+Last verified: 2026-11-28
 
-## Delivered in this implementation pass
+## Current product structure
 
-### Android
-- Installer, Admin and Vehicle Agent modules are included in the Gradle project.
-- Installer and Agent target Android API 21+ and use automatic device profile collection for compatibility decisions.
-- Vehicle Agent uses Android LocationManager, avoiding a Google Play Services dependency on Android head units.
-- Foreground location service displays a persistent Android notification and provides a stop action.
-- Enrollment uses a one-time pairing code, explicit location consent, and a device token returned once.
-- Device token is stored on-device; only its SHA-256 hash is stored server-side.
-- GPS samples are sent to the API with authenticated device-token requests. The app retains a bounded local queue when the network is unavailable.
-- Heartbeat includes battery and Agent version.
-- Reboot restart is opt-in and permission-gated. Android/OEM policies may still prevent restart on some models.
+- Repository: https://github.com/ibrahemahmedabdo1-ai/track-car
+- Unified Android application module: `apps/trackcar-android`
+- Android workspaces: Admin, Vehicle Agent, and device diagnostics.
+- Web platform and API: `web/`
+- Production Vercel project: `track-car-platform` (root directory `web`)
+- Neon production database: project `silent-shape-33906165`, branch `production` (`br-lively-sea-b5o9hotj`), database `trackcar`.
 
-### Backend
-- Added Next.js API and fleet console under `web/`.
-- Added health, admin pairing, admin device listing, device enrollment, heartbeat, location batch, and command polling/result endpoints.
-- Pairing codes expire and are single-use by default; only hashes are stored.
-- API database role `trackcar_api` was created with read/write access to the public schema on the development branch.
-- The API has been designed for the Track Car development branch; production data remains untouched.
+## Approved installation-link behavior
 
-### Database
-- Neon project: `silent-shape-33906165`.
-- Development branch: `track-car-dev-bootstrap` (`br-bold-sky-b5zque6o`).
-- Existing vehicle, device, location, pairing, consent, command, event, release and compatibility tables are present.
-- Confirmed the least-privilege API role can read the relevant tables.
-- Original archived branch remains unchanged.
+This is the current policy and supersedes all earlier 24-hour or one-time-link wording:
 
-### Vercel
-- New project: `track-car-platform` (`prj_PMOFbNBV88AMauHKuArOgXV4APJT`).
-- Root directory: `web`; framework: Next.js; Node.js: 22.x.
-- Preview deployment built successfully:
-  `https://track-car-platform-git-main-otpprovider.vercel.app`
-- Existing `track-car` and `track-car-installer` projects and their domains were not changed.
-- The new project's SSO preview protection was disabled so the device API can be reached; the API itself requires admin/device authentication.
+- Admin creates one reusable installation link.
+- The link has no automatic expiry: `expires_at = NULL`.
+- The link has no maximum enrollment count: `max_uses = NULL`.
+- The same link can enroll multiple Android devices.
+- Each enrollment creates a separate device row, unique device code, unique device API token, consent row, and enrollment event.
+- The device name supplied by each enrolling device is saved independently; devices are not merged.
+- Every device user must separately confirm the in-app location notice and grant Android permissions.
+- Admin may revoke the link at any time. Revocation blocks future enrollments through that link but does not remove or revoke already-enrolled devices.
+- Raw invitation tokens are generated randomly and only their SHA-256 hashes are stored in Neon.
 
-## Required activation step
-The new Vercel project still needs two encrypted environment variables before the database-backed API can pass its health check:
-- `DATABASE_URL`: Neon connection string for `track-car-dev-bootstrap`, using role `trackcar_api`.
-- `TRACKCAR_ADMIN_KEY`: a strong random 32-byte administrator secret.
+### Database and live API verification
 
-The two server-only values have not yet been added to this new Vercel project. Add them directly in Vercel Project Settings → Environment Variables to keep credentials out of source control and the browser, then redeploy.
+- Production migration applied on 2026-11-28: `pairing_invites.expires_at` and `pairing_invites.max_uses` are nullable.
+- Live validation test on 2026-11-28 inserted a temporary unlimited invitation, called the deployed `GET /api/install/[token]`, and received `valid: true`, `expires_at: null`, `multi_device: true`, and `unlimited: true`.
+- The temporary test invitation was deleted immediately after the check.
+- This verifies the deployed link-validation policy. A complete two-physical-device enrollment test is still outstanding.
 
-## Verification still outstanding
-- Android CI passed for commit `ee2be9daabcf8952ed4a37afd4848c6eeb8d8bce`; the Admin, Installer and Agent debug APK artifact was uploaded.
-- Add the two Vercel secrets and verify `GET /api/health` returns database connected.
-- Perform a real pairing/enrollment/GPS sync using a physical Android head unit.
-- Validate automatic restart and background behavior per OEM. Android 12+ and vendor firmware can restrict this.
-- Production domain migration is intentionally not performed until the new preview and real-device test pass.
+## Web platform and deployment
 
-## Live activation verification — 2026-11-27
+- Production URL: https://track-car-platform-git-main-otpprovider.vercel.app
+- Latest security-header deployment: `dpl_DeByAa8GuG6RNDBekyHd5JuZEeCx`
+- Deployment state: READY
+- Commit: `e47ce7a71f75269884cb6500ed6ab86838ed01a9`
+- GitHub Web Build run `46100686520`: success.
+- Live `GET /api/health`: HTTP 200, `ok: true`, `database: connected`.
+- Verified live headers include `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, HSTS, and `Permissions-Policy`.
+- Installation pages return no-store and noindex headers; install-token validation responses return no-store.
+- The production runtime uses the server-side Neon role `trackcar_runtime` via `TRACKCAR_DATABASE_URL`; `TRACKCAR_ADMIN_KEY` remains server-side.
 
-- Both required server-only environment variables, `DATABASE_URL` and `TRACKCAR_ADMIN_KEY`, are now present in the Vercel Production environment.
-- Latest deployment for `track-car-platform` is READY:
-  - Deployment: `dpl_8n3Dowpnp5SPyFMUmZybzpRFXt5e`
-  - Commit: `184d7f1978bb15fa79c65b610473cf54ddbaa319`
-  - URL: `https://track-car-platform-git-main-otpprovider.vercel.app`
-- Live `GET /api/health` returned HTTP 200 with `ok: true` and `database: connected`.
-- Vercel runtime scan (last 24 hours) found one warning group on `/api/health`: pg-connection-string SSL-mode compatibility warning. It was not a database connection failure.
-- The API's authenticated admin/device workflows and a physical Android pairing/GPS upload have NOT yet been end-to-end verified.
-- Environment variables are confirmed in Production only; Preview and Development still need separate values if those environments are to be tested.
-- No custom production domain migration has been performed. Existing Track Car domains remain attached to their previous projects.
-- APKs remain debug builds for internal testing, not production-signed releases.
+## Android application and latest test APK
 
+- One unified Android APK includes Admin, Vehicle Agent, and device diagnostics workspaces.
+- Foreground GPS service displays a persistent Android notification and provides a Stop action.
+- Enrollment requires an explicit in-app location consent checkbox and Android location permission.
+- Each enrolled device receives its own device token; only its SHA-256 hash is stored in Postgres.
+- Device heartbeat and GPS samples are sent to authenticated API routes.
+- The Agent maintains a bounded local queue for location samples when network requests fail.
+- Reboot restart is opt-in and permission-gated; Android and head-unit OEM restrictions vary.
+- Admin Android UI now states that install links have no automatic expiry and can enroll multiple separate devices.
+- Latest unified debug APK build: GitHub Actions run `46100596354`, conclusion SUCCESS, commit `e79668f00515f11a76bb342a10fbf375a5f09dd6`.
+- Artifact size: 9,179,045 bytes.
+- The automated test release asset was refreshed on 2026-11-28:
+  https://github.com/ibrahemahmedabdo1-ai/track-car/releases/download/track-car-android-latest/TrackCar.apk
+- This is a DEBUG-signed internal test APK, not the production-signed release.
 
-## Completion pass — 2026-11-27
+## Production signing — prepared, not yet activated
 
-- Fixed the JSX syntax error in `web/app/install/[token]/page.tsx` that caused Vercel build `dpl_35FL34ugU2HBcEjUtisywvHuP3WF` to fail.
-- Added `.github/workflows/web-build.yml`; GitHub Actions web build passed on commit `ac5bbfc753935b6323a9e181c9fb93eece4d2337` (run `45999733206`).
-- Deployed production commit `ac5bbfc753935b6323a9e181c9fb93eece4d2337`; Vercel deployment `dpl_2YC9bL8Vr77Vzb1xZ2tX5m3pcs4g` reached READY and owns the stable production aliases.
-- Live health check returned HTTP 200, `ok: true`, and `database: connected`.
-- Added a dedicated Neon runtime role `trackcar_runtime` and configured server-only `TRACKCAR_DATABASE_URL` in Vercel Production. Runtime queries use the production branch and explicit `public` table names.
-- Live invitation validation was tested with a temporary one-use invitation; the API returned valid metadata and the temporary record was removed afterward.
-- The unified Android APK build passed in GitHub Actions run `45999155618`. The latest test APK is available from the GitHub release.
-- Added a manual signed-release workflow and Gradle release signing configuration. A production-signed APK is still pending the four repository secrets listed in `docs/DEPLOYMENT_SETUP.md`.
-- Still outstanding: physical head-unit installation, actual enrollment and GPS end-to-end test, OEM-specific background/reboot validation, and custom-domain migration.
+- This is the first official release; no previous production signing key was reported.
+- `apps/trackcar-android/build.gradle.kts` has release signing configuration.
+- Manual workflow: `.github/workflows/android-release.yml`.
+- The workflow checks the required secrets, verifies the keystore alias, builds the release APK, runs `apksigner verify`, and uploads the APK and SHA-256 checksum.
+- Windows helper script: `scripts/windows/create-trackcar-release-keystore.ps1`.
+- The helper creates a new 4096-bit RSA JKS signing key and a local Base64 file. The `signing/` folder and signing-key files are ignored by Git.
+- The following GitHub Actions repository secrets still must be added by the repository owner:
+  1. `TRACKCAR_RELEASE_KEYSTORE_BASE64`
+  2. `TRACKCAR_RELEASE_KEYSTORE_PASSWORD`
+  3. `TRACKCAR_RELEASE_KEY_ALIAS` (helper default: `trackcar-release`)
+  4. `TRACKCAR_RELEASE_KEY_PASSWORD` (same as store password when using the helper)
+- Never commit the keystore or send passwords in chat. Back up the keystore and passwords securely in at least two places. Losing the signing key can prevent future app updates.
+- The signed-release workflow has not yet run because the signing secrets are not configured.
 
-- Follow-up Android build run `46002056975` passed on commit `70846adeba6f095672356375119426f32453c1e8`; it includes repeat-install deep-link handling and the updated test APK was published to the existing GitHub release.
-- Added `singleTop` launch mode so repeat invitation links can reach the existing launcher activity; `onNewIntent` forwards the invitation token to Vehicle Agent.
-- Added `.github/workflows/android-release.yml` for manually building a signed production APK. Its keystore path resolves from the repository root; it remains gated on the four GitHub Actions secrets.
+## Remaining acceptance tests before calling the project complete
 
+1. Generate and safely back up the first official release keystore; add the four GitHub Actions secrets.
+2. Run the signed production APK workflow and verify the signature and checksum.
+3. Install the APK on at least two physical Android devices using the same reusable invitation link.
+4. Verify both devices appear as separate records, each with its own device code, consent, heartbeat, and GPS coordinates.
+5. Revoke the shared link; verify new enrollments are rejected while already-enrolled devices remain registered.
+6. Test foreground GPS, network loss and queue recovery, stop action, and reboot behavior on the actual target head-unit models.
+7. Decide and perform custom-domain migration only after acceptance tests; existing legacy Vercel projects/domains have not been migrated.
 
-## Corrected installation-link policy — 2026-11-28
+## Important scope and safety notes
 
-This section supersedes earlier references in this file to 24-hour expiry and single-use installation links.
-
-- The first official production release will use a newly created company-controlled Android signing keystore. No previous official signing key was reported.
-- Admin installation links do not expire automatically: `pairing_invites.expires_at` is nullable and new reusable links store NULL.
-- A reusable link has no enrollment limit: `pairing_invites.max_uses` is nullable and new links store NULL.
-- One link can enroll multiple devices. Each enrollment creates its own `devices` row, unique device code, unique device API token, separate consent row, and enrollment event.
-- For unlimited links, enrollment does not increment the finite-use counter. Existing finite/one-use links retain their previous expiry/use-limit behavior.
-- Admin revocation disables future enrollments through the link; already enrolled devices remain independent and active.
-- The production Neon migration was prepared and tested on a temporary branch, then applied on 2026-11-28 to project `silent-shape-33906165`, branch `br-lively-sea-b5o9hotj`, database `trackcar`. Both `expires_at` and `max_uses` are now nullable.
-- GitHub source changes were committed for link creation, link validation, enrollment, install page messaging, Admin UI, and deployment documentation. A new Vercel deployment/build verification is still required before claiming the revised flow is live.
-- Required real-device test: enroll at least two physical Android devices using the same link, confirm they appear as two independent records, revoke the link, and verify existing enrolled devices remain intact.
+- No silent installation or hidden location tracking is implemented.
+- Android installation requires the device user to confirm the package installer.
+- Location sharing requires an in-app user action and Android permissions.
+- A successful CI build or API health check does not replace physical-device testing.
