@@ -30,7 +30,7 @@ This is the current policy and supersedes all earlier 24-hour or one-time-link w
 - Production migration applied on 2026-11-28: `pairing_invites.expires_at` and `pairing_invites.max_uses` are nullable.
 - Live validation test on 2026-11-28 inserted a temporary unlimited invitation, called the deployed `GET /api/install/[token]`, and received `valid: true`, `expires_at: null`, `multi_device: true`, and `unlimited: true`.
 - The temporary test invitation was deleted immediately after the check.
-- This verifies the deployed link-validation policy. A complete two-physical-device enrollment test is still outstanding.
+- This verifies the deployed link-validation policy. A database-level test also claimed the same unlimited invite twice without increasing its finite-use counter; the temporary row was deleted. A complete two-physical-device enrollment test is still outstanding.
 
 ## Web platform and deployment
 
@@ -53,7 +53,8 @@ This is the current policy and supersedes all earlier 24-hour or one-time-link w
 - Device heartbeat and GPS samples are sent to authenticated API routes.
 - The Agent maintains a bounded local queue for location samples when network requests fail.
 - Reboot restart is opt-in and permission-gated; Android and head-unit OEM restrictions vary.
-- Admin Android UI now states that install links have no automatic expiry and can enroll multiple separate devices.
+- Admin Android UI states that install links have no automatic expiry and can enroll multiple separate devices.
+- Admin web and Android interfaces now include installation-link history, enrolled-device counts, active/revoked state, and revocation by invitation ID. The full raw link is returned only at creation; only its hash is stored, so a lost URL must be replaced rather than recovered.
 - Latest unified debug APK build: GitHub Actions run `46100596354`, conclusion SUCCESS, commit `e79668f00515f11a76bb342a10fbf375a5f09dd6`.
 - Artifact size: 9,179,045 bytes.
 - The automated test release asset was refreshed on 2026-11-28:
@@ -92,3 +93,11 @@ This is the current policy and supersedes all earlier 24-hour or one-time-link w
 - Android installation requires the device user to confirm the package installer.
 - Location sharing requires an in-app user action and Android permissions.
 - A successful CI build or API health check does not replace physical-device testing.
+
+
+## Deployment and build gates — 2026-11-28 follow-up
+
+- The latest web source (including admin install-link history, ID-based revocation, and no-store API responses) passes GitHub Web Build run `46101014094` on commit `74923832f4760774c43ba4e005ac5b98cb6a2f63`.
+- Vercel's current production deployment is still on commit `59438a57a7140f6cc38a0d07eaa67dc693ae19bc`. The latest web UI/security-helper commit has not yet been deployed.
+- A manual production deployment attempt was blocked by Vercel's `api-deployments-free-per-day` limit (more than 100 deployments in the current daily window; retry after 24 hours). Do not claim the newest web Admin page is live until a later deployment reaches READY.
+- Android Admin link-history UI is being compiled in GitHub Actions after a Kotlin source formatting issue was corrected. The newest run is `46101117811`; wait for SUCCESS and verify its APK artifact before treating that UI update as built.
