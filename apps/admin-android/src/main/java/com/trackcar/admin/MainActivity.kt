@@ -42,6 +42,7 @@ private fun AdminScreen(){
  var code by remember{mutableStateOf("")}\n var inviteId by remember{mutableStateOf("")}
  var vehicleLabel by remember{mutableStateOf("")}
  var devices by remember{mutableStateOf(emptyList<FleetDevice>())}
+ var links by remember{mutableStateOf(emptyList<InstallLink>())}
  var busy by remember{mutableStateOf(false)}
  fun request(path:String,method:String,adminKey:String,body:JSONObject?=null,done:(JSONObject?)->Unit){
   Thread{
