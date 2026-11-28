@@ -49,6 +49,14 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Verify signing key alias
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.TRACKCAR_RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.TRACKCAR_RELEASE_KEY_ALIAS }}
+        run: |
+          keytool -list -keystore signing/trackcar-release.jks -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" >/dev/null
+          echo "Release keystore and alias verified."
+
       - name: Build signed release APK
         env:
           TRACKCAR_KEYSTORE_PATH: signing/trackcar-release.jks
@@ -63,6 +71,8 @@ jobs:
           APK="$(find apps/trackcar-android/build/outputs/apk/release -name '*.apk' -type f | head -n 1)"
           test -n "$APK"
           cp "$APK" release/TrackCar-release.apk
+          APKSIGNER="/usr/local/lib/android/sdk/build-tools/35.0.0/apksigner"
+          "$APKSIGNER" verify --verbose release/TrackCar-release.apk
           sha256sum release/TrackCar-release.apk > release/SHA256SUMS.txt
 
       - name: Upload signed production APK
