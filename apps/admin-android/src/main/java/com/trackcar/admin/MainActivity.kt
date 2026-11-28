@@ -39,7 +39,7 @@ private fun AdminScreen(){
  val clipboard = LocalClipboardManager.current
  var key by remember{mutableStateOf("")}
  var status by remember{mutableStateOf("Enter the administrator API key to connect to the fleet.")}
- var code by remember{mutableStateOf("")}
+ var code by remember{mutableStateOf("")}\n var inviteId by remember{mutableStateOf("")}
  var vehicleLabel by remember{mutableStateOf("")}
  var devices by remember{mutableStateOf(emptyList<FleetDevice>())}
  var busy by remember{mutableStateOf(false)}
@@ -75,7 +75,7 @@ private fun AdminScreen(){
   busy=true;request("/api/admin/install-links","POST",key,JSONObject().put("label",vehicleLabel.trim().ifBlank{"Fleet vehicle installation"})){r->
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not create install link"
-   else{code=r.optString("install_url");status="Reusable installation link created. No automatic expiry; it can enroll multiple separate devices until Admin revokes it."}
+   else{code=r.optString("install_url");inviteId=r.optString("invite_id");status="Reusable installation link created. No automatic expiry; it can enroll multiple separate devices until Admin revokes it."}
   }
  }
  fun revokeLink(){
@@ -85,7 +85,7 @@ private fun AdminScreen(){
   request("/api/admin/install-links","DELETE",key,JSONObject().put("token",token)){r->
    busy=false
    if(r==null||r.has("error"))status=r?.optString("error")?:"Could not revoke link"
-   else{code="";status="Installation link revoked."}
+   else{code="";inviteId="";status="Installation link revoked."}
   }
  }
  MaterialTheme(colorScheme=darkColorScheme(primary=Cyan,background=Navy,surface=Panel,onBackground=Color.White,onSurface=Color.White)){
