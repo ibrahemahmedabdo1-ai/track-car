@@ -49,7 +49,7 @@ Generate the first key on Windows with PowerShell:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
-.\\scripts\\windows\\create-trackcar-release-keystore.ps1
+.\scripts\windows\create-trackcar-release-keystore.ps1
 ```
 
 The script creates a 4096-bit RSA JKS key valid for 10,000 days, plus a Base64 text file under the ignored local `signing/` folder. When prompted for the key password, press Enter to reuse the keystore password. Back up the `.jks` file and password securely in at least two places. Never upload the `.jks` file to GitHub or send passwords in chat.
