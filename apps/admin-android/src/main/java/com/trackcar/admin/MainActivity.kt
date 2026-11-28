@@ -39,7 +39,8 @@ private fun AdminScreen(){
  val clipboard = LocalClipboardManager.current
  var key by remember{mutableStateOf("")}
  var status by remember{mutableStateOf("Enter the administrator API key to connect to the fleet.")}
- var code by remember{mutableStateOf("")}\n var inviteId by remember{mutableStateOf("")}
+ var code by remember{mutableStateOf("")}
+ var inviteId by remember{mutableStateOf("")}
  var vehicleLabel by remember{mutableStateOf("")}
  var devices by remember{mutableStateOf(emptyList<FleetDevice>())}
  var links by remember{mutableStateOf(emptyList<InstallLink>())}
