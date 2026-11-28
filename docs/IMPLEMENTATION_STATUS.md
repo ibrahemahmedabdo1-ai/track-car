@@ -81,3 +81,18 @@ The two server-only values have not yet been added to this new Vercel project. A
 - Follow-up Android build run `46002056975` passed on commit `70846adeba6f095672356375119426f32453c1e8`; it includes repeat-install deep-link handling and the updated test APK was published to the existing GitHub release.
 - Added `singleTop` launch mode so repeat invitation links can reach the existing launcher activity; `onNewIntent` forwards the invitation token to Vehicle Agent.
 - Added `.github/workflows/android-release.yml` for manually building a signed production APK. Its keystore path resolves from the repository root; it remains gated on the four GitHub Actions secrets.
+
+
+## Corrected installation-link policy — 2026-11-28
+
+This section supersedes earlier references in this file to 24-hour expiry and single-use installation links.
+
+- The first official production release will use a newly created company-controlled Android signing keystore. No previous official signing key was reported.
+- Admin installation links do not expire automatically: `pairing_invites.expires_at` is nullable and new reusable links store NULL.
+- A reusable link has no enrollment limit: `pairing_invites.max_uses` is nullable and new links store NULL.
+- One link can enroll multiple devices. Each enrollment creates its own `devices` row, unique device code, unique device API token, separate consent row, and enrollment event.
+- For unlimited links, enrollment does not increment the finite-use counter. Existing finite/one-use links retain their previous expiry/use-limit behavior.
+- Admin revocation disables future enrollments through the link; already enrolled devices remain independent and active.
+- The production Neon migration was prepared and tested on a temporary branch, then applied on 2026-11-28 to project `silent-shape-33906165`, branch `br-lively-sea-b5o9hotj`, database `trackcar`. Both `expires_at` and `max_uses` are now nullable.
+- GitHub source changes were committed for link creation, link validation, enrollment, install page messaging, Admin UI, and deployment documentation. A new Vercel deployment/build verification is still required before claiming the revised flow is live.
+- Required real-device test: enroll at least two physical Android devices using the same link, confirm they appear as two independent records, revoke the link, and verify existing enrolled devices remain intact.
