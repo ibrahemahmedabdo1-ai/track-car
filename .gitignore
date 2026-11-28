@@ -8,3 +8,8 @@ local.properties
 .env
 .env.*
 .DS_Store
+
+# Local Android release signing material (never commit)
+/signing/
+*-keystore-base64.txt
+trackcar-release-base64.txt
