@@ -55,8 +55,8 @@ This is the current policy and supersedes all earlier 24-hour or one-time-link w
 - Reboot restart is opt-in and permission-gated; Android and head-unit OEM restrictions vary.
 - Admin Android UI states that install links have no automatic expiry and can enroll multiple separate devices.
 - Admin web and Android interfaces now include installation-link history, enrolled-device counts, active/revoked state, and revocation by invitation ID. The full raw link is returned only at creation; only its hash is stored, so a lost URL must be replaced rather than recovered.
-- Latest unified debug APK build: GitHub Actions run `46100596354`, conclusion SUCCESS, commit `e79668f00515f11a76bb342a10fbf375a5f09dd6`.
-- Artifact size: 9,179,045 bytes.
+- Latest unified debug APK build: GitHub Actions run `46101117811`, conclusion SUCCESS, commit `06626f409a947ca5f5b3dafb6c0b467916e032f7`. It includes the Admin invitation-history/revocation screen.
+- Latest APK asset size: 9,545,895 bytes.
 - The automated test release asset was refreshed on 2026-11-28:
   https://github.com/ibrahemahmedabdo1-ai/track-car/releases/download/track-car-android-latest/TrackCar.apk
 - This is a DEBUG-signed internal test APK, not the production-signed release.
@@ -100,4 +100,4 @@ This is the current policy and supersedes all earlier 24-hour or one-time-link w
 - The latest web source (including admin install-link history, ID-based revocation, and no-store API responses) passes GitHub Web Build run `46101014094` on commit `74923832f4760774c43ba4e005ac5b98cb6a2f63`.
 - Vercel's current production deployment is still on commit `59438a57a7140f6cc38a0d07eaa67dc693ae19bc`. The latest web UI/security-helper commit has not yet been deployed.
 - A manual production deployment attempt was blocked by Vercel's `api-deployments-free-per-day` limit (more than 100 deployments in the current daily window; retry after 24 hours). Do not claim the newest web Admin page is live until a later deployment reaches READY.
-- Android Admin link-history UI is being compiled in GitHub Actions after a Kotlin source formatting issue was corrected. The newest run is `46101117811`; wait for SUCCESS and verify its APK artifact before treating that UI update as built.
+- Android Admin link-history UI compiled successfully after the Kotlin source formatting issue was corrected. GitHub Actions run `46101117811` on commit `06626f409a947ca5f5b3dafb6c0b467916e032f7`: SUCCESS. Artifact `15245363757` (`track-car-unified-apk`) was uploaded; the `track-car-android-latest` test release asset was refreshed at 2026-11-28 03:06 UTC. APK size: 9,545,895 bytes.
